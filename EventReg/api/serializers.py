@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Form, Question
+from .models import Form, Question , Choice
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -19,4 +19,9 @@ class FormSerializer(serializers.ModelSerializer):
 class QuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Question
+        fields = '__all__'
+
+class ChoiceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Choice
         fields = '__all__'
