@@ -66,6 +66,50 @@ class FormCreate(APIView):
 
         return Response(result, status=status.HTTP_200_OK)
     
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from .models import Form
+from .serializers import FormSerializer
+
+class Formcreate(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        result = {"result": "", "error_reason": ""}
+        data = request.data
+
+        # Check if the user is authenticated
+        if request.user.is_authenticated:
+            if len(data['questions']) > 0:
+                form = Form.objects.create(
+                    title=data['form_title'],
+                    description=data['form_description'],
+                    owner=request.user  # Assign authenticated user as owner
+                )
+                result['result'] = 'Form saved successfully'
+                for question_item in data['questions']:
+                    question = Question.objects.create(
+                    question_text=question_item['text'],
+                    question_type=question_item['type'],
+                    form=form
+                )
+
+                if question_item['type'] == 'mcq_one' or question_item['type'] == 'mcq_many':
+                    for choice_item in question_item['options']:
+                        Choice.objects.create(
+                            choice_text=choice_item,
+                            question=question
+                        )
+            else:
+                result['error_reason'] = 'Add a question title'
+        else:
+            result['error_reason'] = 'User is not authenticated'
+
+        return Response(result, status=status.HTTP_200_OK)
+
+    
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponseNotFound
 

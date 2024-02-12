@@ -16,6 +16,7 @@ class Form(models.Model):
 
 
 class Question(models.Model):
+    form = models.ForeignKey(Form, on_delete=models.CASCADE, null=True)
     question_text = models.CharField(max_length=200)
     owner = models.ForeignKey(User, on_delete=models.CASCADE, default=1)
     QUESTION_TYPE_CHOICES = (
