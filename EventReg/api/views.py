@@ -118,9 +118,16 @@ class FormApiView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, username, pk):
+    def get(self, request):
         try:
-            user = get_object_or_404(User, username=username)
+            # Use the authenticated user instead of extracting from URL
+            user = request.user
+
+            # Assuming the primary key is now provided in the request data
+            pk = request.data.get('pk', None)
+            if pk is None:
+                return Response({"detail": "Primary key not provided."}, status=status.HTTP_400_BAD_REQUEST)
+
             form = get_object_or_404(Form, id=pk, owner=user)
 
             # Use select_related or prefetch_related to optimize queries
