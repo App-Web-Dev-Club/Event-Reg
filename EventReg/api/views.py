@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated , AllowAny
-from .models import Form , Question , Choice
+from .models import *
 import json
 from django.shortcuts import render
 from django.contrib.auth.models import User
@@ -150,3 +150,61 @@ class FormApiView(APIView):
             # Log the exception for debugging purposes
             print(f"An error occurred: {str(e)}")
             return Response({"detail": "Form not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+class AnswerForm(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        result = {"result": "", "error_reason": ""}
+        data = request.data
+
+        # Check if the user is authenticated
+        if request.user.is_authenticated:
+            if 'form_id' in data and 'answers' in data:
+                form_id = data['form_id']
+                form = Form.objects.get(pk=form_id)
+
+                for answer_data in data['answers']:
+                    question_id = answer_data['question_id']
+                    question = Question.objects.get(pk=question_id)
+
+                    if question.question_type == 'text':
+                        TextAnswer.objects.create(
+                            question=question,
+                            user=request.user,
+                            answer_text=answer_data['answer']
+                        )
+                    elif question.question_type == 'mcq_one':
+                        choice_id = answer_data['answer']
+                        choice = Choice.objects.get(pk=choice_id)
+                        McqOneAnswer.objects.create(
+                            question=question,
+                            user=request.user,
+                            choice=choice
+                        )
+                    elif question.question_type == 'mcq_many':
+                        choices_ids = answer_data['answer']
+                        choices = Choice.objects.filter(pk__in=choices_ids)
+
+                        # Correct way to set many-to-many relationship
+                        mcq_many_answer = McqManyAnswer.objects.create(
+                            question=question,
+                            user=request.user
+                        )
+                        mcq_many_answer.choices.set(choices)  # Use set() to set the many-to-many relationship
+
+                    elif question.question_type == 'binary':
+                        answer_option = answer_data['answer']
+                        BinaryAnswer.objects.create(
+                            question=question,
+                            user=request.user,
+                            answer_option=answer_option
+                        )
+
+                result['result'] = 'Answers saved successfully'
+            else:
+                result['error_reason'] = 'Invalid data format'
+        else:
+            result['error_reason'] = 'User is not authenticated'
+
+        return Response(result, status=status.HTTP_200_OK)
